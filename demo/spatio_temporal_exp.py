@@ -71,8 +71,8 @@ def parse_args(argv):
             'threshold'     : 1e-6,                # improvement after which to stop
             'M'             : 500,                # Number of inducing points (sparse regression only)
             'prior_scale'   : 1,                   # initial value for the prior outputscale (same for both dims)
-            'prior_ell'     : 1.3,                 # Initial value for the prior's lengthscale (same for both dims)
-            'prior_mean'    : 0.3,                 # Initial value for the prior's mean (same for both dims)
+            'prior_ell'     : 1.2,                 # Initial value for the prior's lengthscale (same for both dims)
+            'prior_mean'    : 0.5,                 # Initial value for the prior's mean (same for both dims)
             'noise'         : 0.0,                 # 0 for optimised noise, else fixed through training
             'scale'         : 0 ,                  # 0 for optimised output scale, else fixed through training
     }
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     data, x_train, y_train, x_test, y_test, meany, stdy, x_norm, y = load_uib_train_test()
     
     #num_inducing = 500  
-    z = x_train[::2]
+    z = x_train[::3]
     #z = torch.tensor(pm.gp.util.kmeans_inducing_points(num_inducing, np.array(x_train)))
     #z = None
     ## Initialising model-set up and prior settings
@@ -144,9 +144,9 @@ if __name__ == "__main__":
     model.train()
     likelihood.train()
     
-    n_iter = 500
+    n_iter = 600
      
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)  
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
     
     losses = []
@@ -175,27 +175,24 @@ if __name__ == "__main__":
         pred_y_test = likelihood(model(x_test)) 
      
     y_mean = pred_y_test.loc.detach()
-    y_var = pred_y_test.covariance_matrix.diag().detach()
     
     ## Metrics
     rmse_test = rmse(y_mean, y_test, stdy)
-    nlpd_test = negative_log_predictive_density(y_test, y_mean, y_var, stdy)
     
     print('RMSE test =  ' + str(rmse_test))
-    print('NLPD test = ' + str(nlpd_test))
     
     # ### Pred full
     
-    if args['model'] == 'Non-stationary':
-        pred_f = likelihood(model.predict(x_norm))
-    else:
-        pred_f = likelihood(model(x_norm))
+    # if args['model'] == 'Non-stationary':
+    #     pred_f = likelihood(model.predict(x_norm))
+    # else:
+    #     pred_f = likelihood(model(x_norm))
     
-    f_mean = pred_f.loc.detach()
-    f_var = pred_f.covariance_matrix.diag().detach()
-    final_mean = f_mean*stdy + meany
-    np.savetxt('results/f_mean_ns.csv',final_mean)
+    # f_mean = pred_f.loc.detach()
+    # f_var = pred_f.covariance_matrix.diag().detach()
+    # final_mean = f_mean*stdy + meany
+    # np.savetxt('results/f_mean_ns.csv',final_mean)
 
-    plot_spatio_temporal_predictions(title='Non-stationary Kernel', final_mean=f_mean*stdy + meany)
+    # plot_spatio_temporal_predictions(title='Non-stationary Kernel', final_mean=f_mean*stdy + meany)
    
     
